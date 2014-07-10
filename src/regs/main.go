@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/coreos/go-etcd/etcd"
 	"github.com/fsouza/go-dockerclient"
 )
 
@@ -13,6 +14,54 @@ var (
 	etcdHost = "localhost"
 	endpoint = "unix:///var/run/docker.sock"
 )
+
+type Container struct {
+	*docker.Client
+	c *docker.Container
+}
+
+func ContainerByName(name string) (*Container, error) {
+	client, _ := docker.NewClient(endpoint)
+	cfg := docker.ListContainersOptions{}
+	containers, err := client.ListContainers(cfg)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range containers {
+		for _, n := range c.Names {
+			if strings.TrimLeft(n, "/") == name {
+				fmt.Println("Found container ", c.Names)
+				cont, err := client.InspectContainer(c.ID)
+				if err != nil {
+					return nil, err
+				}
+
+				return &Container{client, cont}, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("Container %s not found", name)
+}
+
+func (cont *Container) check() error {
+	info, err := cont.InspectContainer(cont.c.ID)
+	if err != nil {
+		return err
+	}
+	envs := info.Config.Env
+	image := info.Image
+	fmt.Printf("image %+v\n", image)
+	for _, env := range envs {
+		vals := strings.Split(env, "=")
+		name, value := vals[0], vals[1]
+		if name == "HEALTHCHECK" {
+			fmt.Println("HEALTHCHECK ", value)
+			err := runContainer(cont.Client, image, value, info.NetworkSettings.IPAddress)
+			fmt.Printf("result %+v\n", err)
+		}
+	}
+	return nil
+}
 
 func getLinkedContainers() ([]string, error) {
 	names := []string{}
@@ -63,27 +112,12 @@ func runContainer(client *docker.Client, image string, command string, ip string
 	return nil
 }
 
-func check(cid string, client *docker.Client) error {
-	info, err := client.InspectContainer(cid)
-	if err != nil {
-		return err
-	}
-	envs := info.Config.Env
-	image := info.Image
-	fmt.Printf("image %+v\n", image)
-	for _, env := range envs {
-		vals := strings.Split(env, "=")
-		name, value := vals[0], vals[1]
-		if name == "HEALTHCHECK" {
-			fmt.Println("HEALTHCHECK ", value)
-			err := runContainer(client, image, value, info.NetworkSettings.IPAddress)
-			fmt.Printf("result %+v\n", err)
-		}
-	}
-	return nil
+type ContainerHandler struct {
+	Container
+	etcdb *etcd.Client
 }
 
-func register(cid string) error {
+func (h *ContainerHandler) register() error {
 	return nil
 }
 
@@ -100,27 +134,8 @@ func getEnvVariable(name string) (string, error) {
 	return "", fmt.Errorf("Variable %s doesn't exist in enviroment")
 }
 
-func cidByName(client *docker.Client, name string) (string, error) {
-	cfg := docker.ListContainersOptions{}
-	containers, err := client.ListContainers(cfg)
-	if err != nil {
-		return "", err
-	}
-	for _, c := range containers {
-		for _, n := range c.Names {
-			if strings.TrimLeft(n, "/") == name {
-				fmt.Println("Found container ", c.Names)
-				return c.ID, nil
-			}
-		}
-	}
-	return "", fmt.Errorf("Container %s not found", name)
-}
-
 func _checkLinked() error {
 	fmt.Println("==============================================")
-	client, _ := docker.NewClient(endpoint)
-
 	names, err := getLinkedContainers()
 	if err != nil {
 		return err
@@ -131,11 +146,11 @@ func _checkLinked() error {
 	}
 
 	for _, name := range names {
-		cid, err := cidByName(client, name)
+		cont, err := ContainerByName(name)
 		if err != nil {
 			return err
 		}
-		err = check(cid, client)
+		err = cont.check()
 		if err != nil {
 			return err
 		}
@@ -147,12 +162,11 @@ func _checkLinked() error {
 }
 
 func checkByName(cname string) error {
-	client, _ := docker.NewClient(endpoint)
-	cid, err := cidByName(client, cname)
+	cont, err := ContainerByName(cname)
 	if err != nil {
 		return err
 	}
-	err = check(cid, client)
+	err = cont.check()
 	if err != nil {
 		return err
 	}
