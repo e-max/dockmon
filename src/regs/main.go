@@ -108,7 +108,7 @@ func cidByName(client *docker.Client, name string) (string, error) {
 	}
 	for _, c := range containers {
 		for _, n := range c.Names {
-			if n == name {
+			if strings.TrimLeft(n, "/") == name {
 				fmt.Println("Found container ", c.Names)
 				return c.ID, nil
 			}
@@ -162,11 +162,11 @@ func checkByName(cname string) error {
 func main() {
 	flag.StringVar(&etcdHost, "etcd-host", "localhost", "host where etcd is listenting")
 	flag.Parse()
-	err := _checkLinked()
-	//cname := flag.Arg(0)
-	//fmt.Printf("cname %+v\n", cname)
-	//fmt.Printf("os.Args %+v\n", os.Args)
-	//err := checkByName(cname)
+	//err := _checkLinked()
+	cname := flag.Arg(0)
+	fmt.Printf("cname %+v\n", cname)
+	fmt.Printf("os.Args %+v\n", os.Args)
+	err := checkByName(cname)
 	if err != nil {
 		fmt.Println("Error ", err)
 	}
