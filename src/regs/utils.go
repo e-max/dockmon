@@ -24,15 +24,19 @@ func getLinkedContainers() ([]string, error) {
 	return names, nil
 }
 
-func getEnvVariable(name string) (string, error) {
-	for _, e := range os.Environ() {
+func getEnvVariable(name string) (string, bool) {
+	return findVariable(name, os.Environ())
+}
+
+func findVariable(name string, envs []string) (string, bool) {
+	for _, e := range envs {
 		vals := strings.Split(e, "=")
 		if len(vals) != 2 {
-			return "", fmt.Errorf("Wrong options %s", e)
+			return "", false
 		}
 		if strings.ToUpper(vals[0]) == strings.ToUpper(name) {
-			return vals[1], nil
+			return vals[1], true
 		}
 	}
-	return "", fmt.Errorf("Variable %s doesn't exist in enviroment")
+	return "", false
 }

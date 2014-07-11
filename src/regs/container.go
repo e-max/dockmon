@@ -36,25 +36,23 @@ func ContainerByName(name string) (*Container, error) {
 				container.Client = client
 				container.Container = cont
 				container.healthcheckttl = DEFAULT_TTL
-				for _, env := range cont.Config.Env {
-					vals := strings.Split(env, "=")
-					name, value := vals[0], vals[1]
-					if name == "HEALTHCHECK" {
-						fmt.Println("HEALTHCHECK ", value)
-						container.healthcheck = value
-					}
-					if name == "HEALTHCHECKTTL" {
-						fmt.Println("HEALTHCHECKTTL ", value)
-						ttl, err := strconv.Atoi(value)
-						if err != nil {
-							fmt.Printf("Wrong health ttl %s \n", ttl)
-						} else {
-							container.healthcheckttl = ttl
-						}
 
-					}
-
+				hchk, ok := findVariable("HEALTHCHECK", cont.Config.Env)
+				if ok {
+					fmt.Println("HEALTHCHECK ", hchk)
+					container.healthcheck = hchk
 				}
+
+				value, ok := findVariable("HEALTHCHECKTTL", cont.Config.Env)
+				if ok {
+					ttl, err := strconv.Atoi(value)
+					if err != nil {
+						fmt.Printf("Wrong health ttl %s \n", ttl)
+					} else {
+						container.healthcheckttl = ttl
+					}
+				}
+
 				return container, nil
 			}
 		}
