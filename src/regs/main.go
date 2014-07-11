@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -17,7 +18,7 @@ var (
 
 type Container struct {
 	*docker.Client
-	c *docker.Container
+	*docker.Container
 }
 
 func ContainerByName(name string) (*Container, error) {
@@ -30,8 +31,8 @@ func ContainerByName(name string) (*Container, error) {
 	for _, c := range containers {
 		for _, n := range c.Names {
 			if strings.TrimLeft(n, "/") == name {
-				fmt.Println("Found container ", c.Names)
 				cont, err := client.InspectContainer(c.ID)
+				fmt.Println("Found container ", cont.Name)
 				if err != nil {
 					return nil, err
 				}
@@ -44,7 +45,7 @@ func ContainerByName(name string) (*Container, error) {
 }
 
 func (cont *Container) check() error {
-	info, err := cont.InspectContainer(cont.c.ID)
+	info, err := cont.InspectContainer(cont.Container.ID)
 	if err != nil {
 		return err
 	}
@@ -113,11 +114,40 @@ func runContainer(client *docker.Client, image string, command string, ip string
 }
 
 type ContainerHandler struct {
-	Container
-	etcdb *etcd.Client
+	*Container
+	*etcd.Client
+	ttl uint64
+}
+
+type ServiceInfo struct {
+	Ip    string
+	Name  string
+	Ports []docker.APIPort
 }
 
 func (h *ContainerHandler) register() error {
+
+	path := strings.Split(h.Container.Config.Image, "/")
+	service := path[len(path)-1]
+	key := fmt.Sprintf("/service/%s/%s", service, h.Container.ID)
+
+	ip := h.Container.NetworkSettings.IPAddress
+	name := h.Container.Name
+	ports := h.Container.NetworkSettings.PortMappingAPI()
+	val, err := json.Marshal(ServiceInfo{ip, name, ports})
+
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.Set(key, string(val), h.ttl)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("resp %+v\n", resp)
+
 	return nil
 }
 
@@ -173,6 +203,26 @@ func checkByName(cname string) error {
 	return nil
 }
 
+func checkAndRegister(cname string, etcdHost string) error {
+	cont, err := ContainerByName(cname)
+	machines := []string{etcdHost}
+	fmt.Printf("machines %+v\n", machines)
+	eclient := etcd.NewClient(machines)
+	fmt.Printf("eclient %+v\n", eclient)
+	handler := &ContainerHandler{cont, eclient, 300}
+	if err != nil {
+		return err
+	}
+	err = handler.check()
+	if err != nil {
+		return err
+	}
+	err = handler.register()
+
+	return err
+
+}
+
 func main() {
 	flag.StringVar(&etcdHost, "etcd-host", "localhost", "host where etcd is listenting")
 	flag.Parse()
@@ -180,7 +230,8 @@ func main() {
 	cname := flag.Arg(0)
 	fmt.Printf("cname %+v\n", cname)
 	fmt.Printf("os.Args %+v\n", os.Args)
-	err := checkByName(cname)
+	//err := checkByName(cname)
+	err := checkAndRegister(cname, etcdHost)
 	if err != nil {
 		fmt.Println("Error ", err)
 	}
