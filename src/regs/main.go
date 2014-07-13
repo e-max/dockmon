@@ -65,6 +65,15 @@ func checkAndRegister(cname string, etcdHost string) error {
 
 }
 
+func startMonitoring(cname string, etcdHost string) error {
+	handler, err := GetHandler(cname, etcdHost)
+	if err != nil {
+		return err
+	}
+	handler.startMonitoring()
+	return nil
+}
+
 func main() {
 	flag.StringVar(&etcdHost, "etcd-host", "localhost", "host where etcd is listenting")
 	flag.Parse()
@@ -73,9 +82,11 @@ func main() {
 	fmt.Printf("cname %+v\n", cname)
 	fmt.Printf("os.Args %+v\n", os.Args)
 	//err := checkByName(cname)
-	err := checkAndRegister(cname, etcdHost)
-	if err != nil {
-		fmt.Println("Error ", err)
-	}
+	//err := checkAndRegister(cname, etcdHost)
+	//if err != nil {
+	//fmt.Println("Error ", err)
+	//}
+	err := startMonitoring(cname, etcdHost)
+	fmt.Printf("err %#v\n", err)
 
 }

@@ -4,17 +4,18 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/fsouza/go-dockerclient"
 )
 
-const DEFAULT_TTL int = 30
+const DEFAULT_TTL = 30
 
 type Container struct {
 	*docker.Client
 	*docker.Container
 	healthcheck    string
-	healthcheckttl int
+	healthcheckttl time.Duration
 }
 
 func ContainerByName(name string) (*Container, error) {
@@ -37,19 +38,17 @@ func ContainerByName(name string) (*Container, error) {
 				container.Container = cont
 				container.healthcheckttl = DEFAULT_TTL
 
-				hchk, ok := findVariable("HEALTHCHECK", cont.Config.Env)
-				if ok {
+				if hchk, ok := findVariable("HEALTHCHECK", cont.Config.Env); ok {
 					fmt.Println("HEALTHCHECK ", hchk)
 					container.healthcheck = hchk
 				}
 
-				value, ok := findVariable("HEALTHCHECKTTL", cont.Config.Env)
-				if ok {
+				if value, ok := findVariable("HEALTHCHECKTTL", cont.Config.Env); ok {
 					ttl, err := strconv.Atoi(value)
 					if err != nil {
 						fmt.Printf("Wrong health ttl %s \n", ttl)
 					} else {
-						container.healthcheckttl = ttl
+						container.healthcheckttl = time.Duration(ttl)
 					}
 				}
 
@@ -61,10 +60,15 @@ func ContainerByName(name string) (*Container, error) {
 }
 
 func (c *Container) check() error {
+	cont, err := c.Client.InspectContainer(c.ID)
+	if err != nil {
+		return err
+	}
+	c.Container = cont
 	if c.healthcheck == "" {
 		return fmt.Errorf("Container %s doesn't support check interface", c.Name)
 	}
-	err := runContainer(c.Client, c.Config.Image, c.healthcheck, c.NetworkSettings.IPAddress)
+	err = runContainer(c.Client, c.Config.Image, c.healthcheck, c.NetworkSettings.IPAddress)
 	if err != nil {
 		return err
 	}
