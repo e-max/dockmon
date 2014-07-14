@@ -46,7 +46,11 @@ func checkByName(cname string) error {
 }
 
 func checkAndRegister(cname string, etcdHost string) error {
-	handler, err := GetHandler(cname, etcdHost)
+	cont, err := ContainerByName(cname)
+	if err != nil {
+		return err
+	}
+	handler, err := GetMonitor(cont, etcdHost)
 	if err != nil {
 		return err
 	}
@@ -61,7 +65,11 @@ func checkAndRegister(cname string, etcdHost string) error {
 }
 
 func startMonitoring(cname string, etcdHost string) error {
-	handler, err := GetHandler(cname, etcdHost)
+	cont, err := ContainerByName(cname)
+	if err != nil {
+		return err
+	}
+	handler, err := GetMonitor(cont, etcdHost)
 	if err != nil {
 		return err
 	}

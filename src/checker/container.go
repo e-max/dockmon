@@ -21,9 +21,45 @@ type Container struct {
 	healthcheckttl time.Duration
 }
 
+func ContainerById(cid string) (*Container, error) {
+	client, err := docker.NewClient(endpoint)
+	if err != nil {
+		return nil, err
+	}
+	cont, err := client.InspectContainer(cid)
+	logger.Debug("Found container ", cont.Name)
+	if err != nil {
+		return nil, err
+	}
+	container := new(Container)
+	container.Client = client
+	container.Container = cont
+	container.healthcheckttl = DEFAULT_TTL
+
+	if hchk, ok := findVariable("HEALTHCHECK", cont.Config.Env); ok {
+		logger.Debug("HEALTHCHECK ", hchk)
+		container.healthcheck = hchk
+	}
+
+	if value, ok := findVariable("HEALTHCHECKTTL", cont.Config.Env); ok {
+		ttl, err := strconv.Atoi(value)
+		if err != nil {
+			logger.Warning("Wrong health ttl %s: use default %s\n", ttl, DEFAULT_TTL)
+		} else {
+			container.healthcheckttl = time.Duration(ttl)
+		}
+	}
+
+	return container, nil
+}
+
 //Get container by name
 func ContainerByName(name string) (*Container, error) {
-	client, _ := docker.NewClient(endpoint)
+	client, err := docker.NewClient(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := docker.ListContainersOptions{}
 	cfg.All = true
 	containers, err := client.ListContainers(cfg)
@@ -34,31 +70,7 @@ func ContainerByName(name string) (*Container, error) {
 		for _, n := range c.Names {
 			logger.Debug("Test name %s", n)
 			if strings.TrimLeft(n, "/") == name {
-				cont, err := client.InspectContainer(c.ID)
-				logger.Debug("Found container ", cont.Name)
-				if err != nil {
-					return nil, err
-				}
-				container := new(Container)
-				container.Client = client
-				container.Container = cont
-				container.healthcheckttl = DEFAULT_TTL
-
-				if hchk, ok := findVariable("HEALTHCHECK", cont.Config.Env); ok {
-					logger.Debug("HEALTHCHECK ", hchk)
-					container.healthcheck = hchk
-				}
-
-				if value, ok := findVariable("HEALTHCHECKTTL", cont.Config.Env); ok {
-					ttl, err := strconv.Atoi(value)
-					if err != nil {
-						logger.Warning("Wrong health ttl %s: use default %s\n", ttl, DEFAULT_TTL)
-					} else {
-						container.healthcheckttl = time.Duration(ttl)
-					}
-				}
-
-				return container, nil
+				return ContainerById(c.ID)
 			}
 		}
 	}

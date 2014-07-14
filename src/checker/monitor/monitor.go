@@ -21,11 +21,15 @@ var (
 var logger = logging.MustGetLogger("check")
 
 func startMonitoring(cname string, etcdHost string) error {
-	handler, err := checker.GetHandler(cname, etcdHost)
+	cont, err := checker.ContainerByName(cname)
 	if err != nil {
 		return err
 	}
-	handler.StartMonitoring()
+	monitor, err := checker.GetMonitor(cont, etcdHost)
+	if err != nil {
+		return err
+	}
+	monitor.StartMonitoring()
 	return nil
 }
 

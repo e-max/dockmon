@@ -16,7 +16,7 @@ type ServiceInfo struct {
 	Ports []docker.APIPort
 }
 
-type ContainerHandler struct {
+type ContainerMonitor struct {
 	*Container
 	*etcd.Client
 	ttl    uint64
@@ -24,21 +24,15 @@ type ContainerHandler struct {
 	stop   chan bool
 }
 
-func GetHandler(cname string, etcdHost string) (*ContainerHandler, error) {
-	cont, err := ContainerByName(cname)
-	if err != nil {
-		return nil, err
-	}
-
+func GetMonitor(container *Container, etcdHost string) (*ContainerMonitor, error) {
 	machines := []string{etcdHost}
 	logger.Debug("Create etcd client connected to %+v", machines)
 	eclient := etcd.NewClient(machines)
-	handler := &ContainerHandler{cont, eclient, 300, nil, nil}
+	handler := &ContainerMonitor{container, eclient, 300, nil, nil}
 	return handler, nil
-
 }
 
-func (h *ContainerHandler) StartMonitoring() {
+func (h *ContainerMonitor) StartMonitoring() {
 	h.ticker = time.NewTicker(h.healthcheckttl*time.Second - 1)
 	h.stop = make(chan bool, 1)
 	for {
@@ -60,7 +54,7 @@ func (h *ContainerHandler) StartMonitoring() {
 	}
 }
 
-func (h *ContainerHandler) StopMonitoring() {
+func (h *ContainerMonitor) StopMonitoring() {
 	logger.Info("Stop monitorint container %s", h)
 	if h.ticker != nil {
 		h.ticker.Stop()
@@ -68,7 +62,7 @@ func (h *ContainerHandler) StopMonitoring() {
 	}
 }
 
-func (h *ContainerHandler) Register() error {
+func (h *ContainerMonitor) Register() error {
 	path := strings.Split(h.Container.Config.Image, "/")
 	service := path[len(path)-1]
 	key := fmt.Sprintf("/service/%s/%s", service, h.Container.ID)
