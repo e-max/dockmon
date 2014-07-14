@@ -24,7 +24,7 @@ func getLinkedContainers() ([]string, error) {
 	return names, nil
 }
 
-func getEnvVariable(name string) (string, bool) {
+func GetEnvVariable(name string) (string, bool) {
 	return findVariable(name, os.Environ())
 }
 

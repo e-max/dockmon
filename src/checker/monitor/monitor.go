@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/op/go-logging"
@@ -11,7 +12,7 @@ import (
 )
 
 var (
-	etcdHost = "localhost"
+	etcdHost = ""
 	logLevel = "INFO"
 	stdout   = false
 	syslog   = true
@@ -29,7 +30,7 @@ func startMonitoring(cname string, etcdHost string) error {
 }
 
 func main() {
-	flag.StringVar(&etcdHost, "etcd-host", "localhost", "Host where etcd is listenting")
+	flag.StringVar(&etcdHost, "etcd-host", "", "Host where etcd is listenting")
 	flag.StringVar(&logLevel, "loglevel", "INFO", "Logging level. Must be one of (DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL)")
 	flag.BoolVar(&stdout, "stdout", false, "Write logs to STDOUT. Default false")
 	flag.BoolVar(&syslog, "syslog", true, "Write logs to SYSLOG. Default true")
@@ -49,6 +50,15 @@ func main() {
 	if cname == "" {
 		flag.Usage()
 		os.Exit(2)
+	}
+
+	if etcdHost == "" {
+		if addr, ok := checker.GetEnvVariable("COREOS_PRIVATE_IPV4"); ok {
+			etcdHost = addr
+		} else {
+			log.Fatal("You have to set -etcd-host argument or COREOS_PRIVATE_IPV4 enviroment variable")
+
+		}
 	}
 	err := startMonitoring(cname, etcdHost)
 	logger.Error("Monitoring stopped %s", err)
