@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
@@ -18,18 +19,21 @@ type Container struct {
 	healthcheckttl time.Duration
 }
 
+//Get container by name
 func ContainerByName(name string) (*Container, error) {
 	client, _ := docker.NewClient(endpoint)
 	cfg := docker.ListContainersOptions{}
+	cfg.All = true
 	containers, err := client.ListContainers(cfg)
 	if err != nil {
 		return nil, err
 	}
 	for _, c := range containers {
 		for _, n := range c.Names {
+			logger.Debug("Test name %s", n)
 			if strings.TrimLeft(n, "/") == name {
 				cont, err := client.InspectContainer(c.ID)
-				fmt.Println("Found container ", cont.Name)
+				logger.Debug("Found container ", cont.Name)
 				if err != nil {
 					return nil, err
 				}
@@ -39,14 +43,14 @@ func ContainerByName(name string) (*Container, error) {
 				container.healthcheckttl = DEFAULT_TTL
 
 				if hchk, ok := findVariable("HEALTHCHECK", cont.Config.Env); ok {
-					fmt.Println("HEALTHCHECK ", hchk)
+					logger.Debug("HEALTHCHECK ", hchk)
 					container.healthcheck = hchk
 				}
 
 				if value, ok := findVariable("HEALTHCHECKTTL", cont.Config.Env); ok {
 					ttl, err := strconv.Atoi(value)
 					if err != nil {
-						fmt.Printf("Wrong health ttl %s \n", ttl)
+						logger.Warning("Wrong health ttl %s: use default %s\n", ttl, DEFAULT_TTL)
 					} else {
 						container.healthcheckttl = time.Duration(ttl)
 					}
@@ -60,23 +64,29 @@ func ContainerByName(name string) (*Container, error) {
 }
 
 func (c *Container) check() error {
+	logger.Debug("Check container %s", c.ID)
 	cont, err := c.Client.InspectContainer(c.ID)
 	if err != nil {
 		return err
 	}
 	c.Container = cont
+	if !cont.State.Running {
+		return fmt.Errorf("Container %s is not running", c.ID)
+	}
 	if c.healthcheck == "" {
+		logger.Error("Container %s doesn't support check interface", c.Name)
 		return fmt.Errorf("Container %s doesn't support check interface", c.Name)
 	}
 	err = runContainer(c.Client, c.Config.Image, c.healthcheck, c.NetworkSettings.IPAddress)
 	if err != nil {
 		return err
 	}
+	logger.Debug("Container %s is ok", c.ID)
 	return nil
 }
 
 func runContainer(client *docker.Client, image string, command string, ip string) error {
-	fmt.Printf("Run image %s with com line %s to test %s\n", image, command, ip)
+	logger.Debug("Run image %s with com line %s to test %s\n", image, command, ip)
 	config := new(docker.Config)
 	config.Image = image
 	config.Entrypoint = []string{command}
@@ -100,7 +110,18 @@ func runContainer(client *docker.Client, image string, command string, ip string
 	}
 
 	if code != 0 {
-		return fmt.Errorf("Check return error code %d", code)
+		var b bytes.Buffer
+		options := docker.LogsOptions{
+			container.ID,
+			&b,
+			false,
+			true,
+			true,
+			true,
+		}
+
+		err = client.Logs(options)
+		return fmt.Errorf("Check return error code %d: %s", code, b.Bytes())
 	}
 
 	return nil

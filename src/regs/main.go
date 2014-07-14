@@ -75,6 +75,8 @@ func startMonitoring(cname string, etcdHost string) error {
 }
 
 func main() {
+	initLogger("DEBUG", true)
+	logger.Debug("START ")
 	flag.StringVar(&etcdHost, "etcd-host", "localhost", "host where etcd is listenting")
 	flag.Parse()
 	//err := _checkLinked()

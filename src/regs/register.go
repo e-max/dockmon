@@ -31,9 +31,8 @@ func GetHandler(cname string, etcdHost string) (*ContainerHandler, error) {
 	}
 
 	machines := []string{etcdHost}
-	fmt.Printf("machines %+v\n", machines)
+	logger.Debug("Create etcd client connected to %+v", machines)
 	eclient := etcd.NewClient(machines)
-	fmt.Printf("eclient %+v\n", eclient)
 	handler := &ContainerHandler{cont, eclient, 300, nil, nil}
 	return handler, nil
 
@@ -48,22 +47,21 @@ func (h *ContainerHandler) startMonitoring() {
 			err := h.check()
 			if err != nil {
 				if noCont, ok := err.(*docker.NoSuchContainer); ok {
+					logger.Debug("No such container %s", noCont)
 					h.stopMonitoring()
-					fmt.Printf("ERROR 2 %+v\n", noCont)
 				}
-				fmt.Printf("GOT ERROR  %#v\n", err)
+				logger.Info("Got error while check container %s: %s", h.Container.ID, err)
 			} else {
 				h.register()
 			}
 		case <-h.stop:
-			fmt.Println("GOT IN STOP")
 			return
 		}
 	}
-	fmt.Println("EXIT ")
 }
 
 func (h *ContainerHandler) stopMonitoring() {
+	logger.Info("Stop monitorint container %s", h)
 	if h.ticker != nil {
 		h.ticker.Stop()
 		h.stop <- true
@@ -71,7 +69,6 @@ func (h *ContainerHandler) stopMonitoring() {
 }
 
 func (h *ContainerHandler) register() error {
-
 	path := strings.Split(h.Container.Config.Image, "/")
 	service := path[len(path)-1]
 	key := fmt.Sprintf("/service/%s/%s", service, h.Container.ID)
@@ -79,19 +76,20 @@ func (h *ContainerHandler) register() error {
 	ip := h.Container.NetworkSettings.IPAddress
 	name := h.Container.Name
 	ports := h.Container.NetworkSettings.PortMappingAPI()
+
+	logger.Debug("Register container %s with ip = %s", name, ip)
+
 	val, err := json.Marshal(ServiceInfo{ip, name, ports})
 
 	if err != nil {
 		return err
 	}
 
-	resp, err := h.Set(key, string(val), h.ttl)
+	_, err = h.Set(key, string(val), h.ttl)
 
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("resp %+v\n", resp)
 
 	return nil
 }
