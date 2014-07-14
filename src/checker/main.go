@@ -1,14 +1,9 @@
-package main
+package checker
 
 import (
 	"flag"
 	"fmt"
 	"os"
-)
-
-var (
-	etcdHost = "localhost"
-	endpoint = "unix:///var/run/docker.sock"
 )
 
 func _checkLinked() error {
@@ -27,7 +22,7 @@ func _checkLinked() error {
 		if err != nil {
 			return err
 		}
-		err = cont.check()
+		err = cont.Check()
 		if err != nil {
 			return err
 		}
@@ -43,7 +38,7 @@ func checkByName(cname string) error {
 	if err != nil {
 		return err
 	}
-	err = cont.check()
+	err = cont.Check()
 	if err != nil {
 		return err
 	}
@@ -55,11 +50,11 @@ func checkAndRegister(cname string, etcdHost string) error {
 	if err != nil {
 		return err
 	}
-	err = handler.check()
+	err = handler.Check()
 	if err != nil {
 		return err
 	}
-	err = handler.register()
+	err = handler.Register()
 
 	return err
 
@@ -70,13 +65,14 @@ func startMonitoring(cname string, etcdHost string) error {
 	if err != nil {
 		return err
 	}
-	handler.startMonitoring()
+	handler.StartMonitoring()
 	return nil
 }
 
-func main() {
-	initLogger("DEBUG", true)
+func main1() {
+	InitLogger("DEBUG", true, true)
 	logger.Debug("START ")
+	var etcdHost string
 	flag.StringVar(&etcdHost, "etcd-host", "localhost", "host where etcd is listenting")
 	flag.Parse()
 	//err := _checkLinked()

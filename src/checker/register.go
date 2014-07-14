@@ -1,4 +1,4 @@
-package main
+package checker
 
 import (
 	"encoding/json"
@@ -38,21 +38,21 @@ func GetHandler(cname string, etcdHost string) (*ContainerHandler, error) {
 
 }
 
-func (h *ContainerHandler) startMonitoring() {
+func (h *ContainerHandler) StartMonitoring() {
 	h.ticker = time.NewTicker(h.healthcheckttl*time.Second - 1)
 	h.stop = make(chan bool, 1)
 	for {
 		select {
 		case <-h.ticker.C:
-			err := h.check()
+			err := h.Check()
 			if err != nil {
 				if noCont, ok := err.(*docker.NoSuchContainer); ok {
 					logger.Debug("No such container %s", noCont)
-					h.stopMonitoring()
+					h.StopMonitoring()
 				}
 				logger.Info("Got error while check container %s: %s", h.Container.ID, err)
 			} else {
-				h.register()
+				h.Register()
 			}
 		case <-h.stop:
 			return
@@ -60,7 +60,7 @@ func (h *ContainerHandler) startMonitoring() {
 	}
 }
 
-func (h *ContainerHandler) stopMonitoring() {
+func (h *ContainerHandler) StopMonitoring() {
 	logger.Info("Stop monitorint container %s", h)
 	if h.ticker != nil {
 		h.ticker.Stop()
@@ -68,7 +68,7 @@ func (h *ContainerHandler) stopMonitoring() {
 	}
 }
 
-func (h *ContainerHandler) register() error {
+func (h *ContainerHandler) Register() error {
 	path := strings.Split(h.Container.Config.Image, "/")
 	service := path[len(path)-1]
 	key := fmt.Sprintf("/service/%s/%s", service, h.Container.ID)

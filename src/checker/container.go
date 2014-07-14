@@ -1,4 +1,4 @@
-package main
+package checker
 
 import (
 	"bytes"
@@ -63,7 +63,7 @@ func ContainerByName(name string) (*Container, error) {
 	return nil, fmt.Errorf("Container %s not found", name)
 }
 
-func (c *Container) check() error {
+func (c *Container) Check() error {
 	logger.Debug("Check container %s", c.ID)
 	cont, err := c.Client.InspectContainer(c.ID)
 	if err != nil {
