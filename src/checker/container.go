@@ -12,6 +12,8 @@ import (
 
 const DEFAULT_TTL = 30
 
+var endpoint = "unix:///var/run/docker.sock"
+
 type Container struct {
 	*docker.Client
 	*docker.Container

@@ -12,7 +12,6 @@ import (
 )
 
 var (
-	endpoint = "unix:///var/run/docker.sock"
 	logLevel = "INFO"
 	stdout   = false
 	syslog   = true
@@ -33,7 +32,6 @@ func checkByName(cname string) error {
 }
 
 func main() {
-	flag.StringVar(&endpoint, "endpoint", "unix:///var/run/docker.sock", "Socket to use for connect to docker")
 	flag.StringVar(&logLevel, "loglevel", "INFO", "Logging level. Must be one of (DEBUG, INFO, NOTICE, WARNING, ERROR, CRITICAL)")
 	flag.BoolVar(&stdout, "stdout", true, "Write logs to STDOUT. Default true")
 	flag.BoolVar(&syslog, "syslog", false, "Write logs to SYSLOG. Default false")
@@ -51,6 +49,7 @@ func main() {
 	cname := flag.Arg(0)
 	if cname == "" {
 		flag.Usage()
+		os.Exit(2)
 	}
 	err := checkByName(cname)
 	if err != nil {
