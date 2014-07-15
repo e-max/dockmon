@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/op/go-logging"
 
@@ -29,7 +31,18 @@ func startMonitoring(cname string, etcdHost string) error {
 	if err != nil {
 		return err
 	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		for sig := range c {
+			logger.Info("Got %s signal. Try to stop gracefuly.", sig)
+			monitor.StopMonitoring()
+		}
+	}()
+
 	monitor.StartMonitoring()
+
 	return nil
 }
 
@@ -65,5 +78,9 @@ func main() {
 		}
 	}
 	err := startMonitoring(cname, etcdHost)
-	logger.Error("Monitoring stopped %s", err)
+	if err != nil {
+		logger.Error("Monitoring stopped with error %s", err)
+	} else {
+		logger.Info("Monitoring stopped.")
+	}
 }
