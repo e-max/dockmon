@@ -12,7 +12,7 @@ func getLinkedContainers() ([]string, error) {
 	for _, e := range os.Environ() {
 		vals := strings.Split(e, "=")
 		if len(vals) != 2 {
-			return nil, fmt.Errorf("Wrong options %s", e)
+			return nil, fmt.Errorf("wrong options %s", e)
 		}
 		k := strings.ToUpper(vals[0])
 		v := vals[1]
@@ -24,6 +24,7 @@ func getLinkedContainers() ([]string, error) {
 	return names, nil
 }
 
+//GetEnvVariable find variable in enviroment by name
 func GetEnvVariable(name string) (string, bool) {
 	return findVariable(name, os.Environ())
 }

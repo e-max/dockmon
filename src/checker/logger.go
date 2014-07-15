@@ -19,12 +19,13 @@ var logLevels = map[string]logging.Level{
 	"CRITICAL": logging.CRITICAL,
 }
 
+//InitLogger initialize logger
 func InitLogger(level string, stdout bool, syslog bool) {
 	logging.SetFormatter(logging.MustStringFormatter("▶ %{level} %{module} %{message}"))
 	backends := []logging.Backend{}
 
 	if !(stdout || syslog) {
-		fmt.Errorf("You have to set stdout or syslog options")
+		fmt.Errorf("you have to set stdout or syslog options")
 	}
 
 	if syslog {
