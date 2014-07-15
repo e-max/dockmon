@@ -11,7 +11,7 @@ import (
 )
 
 // Default check period
-const DefaultTTL = 30
+const DefaultTTL = 30 * time.Second
 
 var endpoint = "unix:///var/run/docker.sock"
 
@@ -63,7 +63,7 @@ func ContainerByID(cid string) (*Container, error) {
 			logger.Warning("Wrong health ttl %s: use default %s\n", ttl, DefaultTTL)
 		} else {
 			logger.Debug("HEALTHCHECKTTL = %s", ttl)
-			container.healthcheckttl = time.Duration(ttl)
+			container.healthcheckttl = time.Duration(ttl) * time.Second
 		}
 	}
 
