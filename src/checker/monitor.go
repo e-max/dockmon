@@ -56,19 +56,11 @@ func (h *ContainerMonitor) StartMonitoring() {
 					logger.Info("Got error while check container %s: %s", h, err)
 				}
 
-				//if noCont, ok := err.(*docker.NoSuchContainer); ok {
-				//logger.Warning("No such container %s", noCont)
-				//h.StopMonitoring()
-				//} else if noCont, ok := err.(*NotSupportCheckError); ok {
-				//logger.Warning("No such container %s", noCont)
-				//h.StopMonitoring()
-				//}
-
-				//logger.Info("Got error while check container %s: %s", h, err)
 			} else {
 				h.Register()
 			}
 		case <-h.stop:
+			logger.Debug("Got stop signal %s", h)
 			return
 		}
 	}
@@ -76,7 +68,7 @@ func (h *ContainerMonitor) StartMonitoring() {
 
 //StopMonitoring wrapped container
 func (h *ContainerMonitor) StopMonitoring() {
-	logger.Info("Stop monitorint container %s", h)
+	logger.Info("Stop monitoring container %s", h)
 	if h.ticker != nil {
 		h.ticker.Stop()
 		h.stop <- true
