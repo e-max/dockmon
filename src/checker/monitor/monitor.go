@@ -70,6 +70,7 @@ func main() {
 	}
 
 	if etcdHost == "" {
+		logger.Info("Argument -etcdHost doesn't set. Will try COREOS_PRIVATE_IPV4 eviroment variable")
 		if addr, ok := checker.GetEnvVariable("COREOS_PRIVATE_IPV4"); ok {
 			etcdHost = addr
 		} else {
