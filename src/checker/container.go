@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/fsouza/go-dockerclient"
 )
 
 // Default check period
-const DefaultTTL = 30 * time.Second
+const DefaultTTL = 30
 
 var endpoint = "unix:///var/run/docker.sock"
 
@@ -29,7 +28,7 @@ type Container struct {
 	*docker.Client
 	*docker.Container
 	healthcheck    string
-	healthcheckttl time.Duration
+	healthcheckttl uint64
 }
 
 func (c *Container) String() string {
@@ -63,7 +62,7 @@ func ContainerByID(cid string) (*Container, error) {
 			logger.Warning("Wrong health ttl %s: use default %s\n", ttl, DefaultTTL)
 		} else {
 			logger.Debug("HEALTHCHECKTTL = %s", ttl)
-			container.healthcheckttl = time.Duration(ttl) * time.Second
+			container.healthcheckttl = uint64(ttl)
 		}
 	}
 

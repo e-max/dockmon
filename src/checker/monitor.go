@@ -38,7 +38,7 @@ func GetMonitor(container *Container, etcdHost string) (*ContainerMonitor, error
 //StartMonitoring wrapped container
 func (h *ContainerMonitor) StartMonitoring() {
 	logger.Info("Start monitoring container %s", h)
-	h.ticker = time.NewTicker(h.healthcheckttl)
+	h.ticker = time.NewTicker(time.Duration(h.healthcheckttl) * time.Second)
 	h.stop = make(chan bool, 1)
 	for {
 		select {
