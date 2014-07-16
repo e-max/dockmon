@@ -31,14 +31,14 @@ func GetMonitor(container *Container, etcdHost string) (*ContainerMonitor, error
 	machines := []string{etcdHost}
 	logger.Debug("Create etcd client connected to %+v", machines)
 	eclient := etcd.NewClient(machines)
-	handler := &ContainerMonitor{container, eclient, uint64(container.healthcheckttl*2 + 1), nil, nil}
+	handler := &ContainerMonitor{container, eclient, uint64(container.healthcheckPeriod*2 + 1), nil, nil}
 	return handler, nil
 }
 
 //StartMonitoring wrapped container
 func (h *ContainerMonitor) StartMonitoring() {
 	logger.Info("Start monitoring container %s", h)
-	h.ticker = time.NewTicker(time.Duration(h.healthcheckttl) * time.Second)
+	h.ticker = time.NewTicker(time.Duration(h.healthcheckPeriod) * time.Second)
 	h.stop = make(chan bool, 1)
 	for {
 		select {

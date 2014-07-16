@@ -10,7 +10,7 @@ import (
 )
 
 // Default check period
-const DefaultTTL = 30
+const DefaultCheckPeriod = 30
 
 var endpoint = "unix:///var/run/docker.sock"
 
@@ -27,8 +27,8 @@ func (e NotSupportCheckError) Error() string {
 type Container struct {
 	*docker.Client
 	*docker.Container
-	healthcheck    string
-	healthcheckttl uint64
+	healthcheck       string
+	healthcheckPeriod uint64
 }
 
 func (c *Container) String() string {
@@ -49,20 +49,20 @@ func ContainerByID(cid string) (*Container, error) {
 	container := new(Container)
 	container.Client = client
 	container.Container = cont
-	container.healthcheckttl = DefaultTTL
+	container.healthcheckPeriod = DefaultCheckPeriod
 
 	if hchk, ok := findVariable("HEALTHCHECK", cont.Config.Env); ok {
 		logger.Debug("HEALTHCHECK = %s ", hchk)
 		container.healthcheck = hchk
 	}
 
-	if value, ok := findVariable("HEALTHCHECKTTL", cont.Config.Env); ok {
+	if value, ok := findVariable("HEALTHCHECKPERIOD", cont.Config.Env); ok {
 		ttl, err := strconv.Atoi(value)
 		if err != nil {
-			logger.Warning("Wrong health ttl %s: use default %s\n", ttl, DefaultTTL)
+			logger.Warning("Wrong health check period %s: use default %s\n", ttl, DefaultCheckPeriod)
 		} else {
-			logger.Debug("HEALTHCHECKTTL = %s", ttl)
-			container.healthcheckttl = uint64(ttl)
+			logger.Debug("HEALTHCHECKPERIOD = %s", ttl)
+			container.healthcheckPeriod = uint64(ttl)
 		}
 	}
 
