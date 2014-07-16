@@ -36,59 +36,59 @@ func GetMonitor(container *Container, etcdHost string) (*ContainerMonitor, error
 }
 
 //StartMonitoring wrapped container
-func (h *ContainerMonitor) StartMonitoring() {
-	logger.Info("Start monitoring container %s", h)
-	h.ticker = time.NewTicker(time.Duration(h.healthcheckPeriod) * time.Second)
-	h.stop = make(chan bool, 1)
+func (m *ContainerMonitor) StartMonitoring() {
+	logger.Info("Start monitoring container %s", m)
+	m.ticker = time.NewTicker(time.Duration(m.healthcheckPeriod) * time.Second)
+	m.stop = make(chan bool, 1)
 	for {
 		select {
-		case <-h.ticker.C:
-			err := h.Check()
+		case <-m.ticker.C:
+			err := m.Check()
 			if err != nil {
 				switch err.(type) {
 				case *docker.NoSuchContainer:
 					logger.Warning("%s", err)
-					h.StopMonitoring()
+					m.StopMonitoring()
 				case *NotSupportCheckError:
 					logger.Warning("%s", err)
-					h.StopMonitoring()
+					m.StopMonitoring()
 				default:
-					logger.Info("Got error while check container %s: %s", h, err)
+					logger.Info("Got error while check container %s: %s", m, err)
 				}
 
 			} else {
-				err := h.Register()
+				err := m.Register()
 				if err != nil {
 					logger.Error("Cannot update info about container in etcd: %s", err)
 				}
 			}
-		case <-h.stop:
-			logger.Debug("Got stop signal %s", h)
+		case <-m.stop:
+			logger.Debug("Got stop signal %s", m)
 			return
 		}
 	}
 }
 
 //StopMonitoring wrapped container
-func (h *ContainerMonitor) StopMonitoring() {
-	logger.Info("Stop monitoring container %s", h)
-	if h.ticker != nil {
-		h.ticker.Stop()
-		h.stop <- true
+func (m *ContainerMonitor) StopMonitoring() {
+	logger.Info("Stop monitoring container %s", m)
+	if m.ticker != nil {
+		m.ticker.Stop()
+		m.stop <- true
 	}
 }
 
 //Register service provided by container in etcd
-func (h *ContainerMonitor) Register() error {
-	path := strings.Split(h.Container.Config.Image, "/")
+func (m *ContainerMonitor) Register() error {
+	path := strings.Split(m.Container.Config.Image, "/")
 	service := path[len(path)-1]
-	key := fmt.Sprintf("/service/%s/%s", service, h.Container.ID)
+	key := fmt.Sprintf("/service/%s/%s", service, m.Container.ID)
 
-	ip := h.Container.NetworkSettings.IPAddress
-	name := h.Container.Name
-	ports := h.Container.NetworkSettings.PortMappingAPI()
+	ip := m.Container.NetworkSettings.IPAddress
+	name := m.Container.Name
+	ports := m.Container.NetworkSettings.PortMappingAPI()
 
-	logger.Debug("Register container %s with ip = %s (ttl = %s)", h, ip, h.etcdTTL)
+	logger.Debug("Register container %s with ip = %s (ttl = %s)", m, ip, m.etcdTTL)
 
 	val, err := json.Marshal(ServiceInfo{ip, name, ports})
 
@@ -96,13 +96,13 @@ func (h *ContainerMonitor) Register() error {
 		return err
 	}
 
-	_, err = h.Set(key, string(val), h.etcdTTL)
+	_, err = m.Set(key, string(val), m.etcdTTL)
 
 	if err != nil {
 		return err
 	}
 
-	_, err = h.UpdateDir(fmt.Sprintf("/service/%s/", service), h.etcdTTL)
+	_, err = m.UpdateDir(fmt.Sprintf("/service/%s/", service), m.etcdTTL)
 
 	if err != nil {
 		return err
