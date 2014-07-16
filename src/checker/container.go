@@ -117,12 +117,10 @@ func (c *Container) Check() error {
 }
 
 func removeContainer(client *docker.Client, cid string) error {
-	logger.Warning("REMOVE CONTAINER %s", cid)
 	err := client.RemoveContainer(docker.RemoveContainerOptions{cid, true, true})
 	if err != nil {
 		return err
 	}
-	logger.Warning("DONE CONTAINER %s", cid)
 
 	return nil
 }
@@ -141,7 +139,6 @@ func runContainer(client *docker.Client, image string, command string, ip string
 	}
 
 	if remove {
-		logger.Warning("START CONTAINER %s", container.ID)
 		//defer client.RemoveContainer(docker.RemoveContainerOptions{container.ID, true, true})
 		defer removeContainer(client, container.ID)
 	}

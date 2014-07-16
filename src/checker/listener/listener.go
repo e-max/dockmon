@@ -65,7 +65,7 @@ func main() {
 	if err != nil {
 		logger.Error("Monitoring stopped with error %s", err)
 	} else {
-		logger.Error("Monitoring stopped ")
+		logger.Info("Monitoring stopped ")
 	}
 
 }

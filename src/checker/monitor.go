@@ -57,7 +57,10 @@ func (h *ContainerMonitor) StartMonitoring() {
 				}
 
 			} else {
-				h.Register()
+				err := h.Register()
+				if err != nil {
+					logger.Error("Cannot update info about container in etcd: %s", err)
+				}
 			}
 		case <-h.stop:
 			logger.Debug("Got stop signal %s", h)
