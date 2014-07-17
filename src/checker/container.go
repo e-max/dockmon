@@ -157,12 +157,12 @@ func runContainer(client *docker.Client, image string, command string, ip string
 	if code != 0 {
 		var b bytes.Buffer
 		options := docker.LogsOptions{
-			container.ID,
-			&b,
-			false,
-			true,
-			true,
-			true,
+			Container:    container.ID,
+			OutputStream: &b,
+			ErrorStream:  &b,
+			Stdout:       true,
+			Stderr:       true,
+			Timestamps:   true,
 		}
 
 		err = client.Logs(options)
