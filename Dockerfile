@@ -1,7 +1,7 @@
-FROM busybox
-ADD ./bin/check /usr/bin/
-ADD ./bin/monitor /usr/bin/monitor
-ADD ./bin/listener /usr/bin/listener
-
-ENTRYPOINT ["/usr/bin/monitor"]
-
+FROM google/golang
+WORKDIR /gopath/src/checker
+ADD ./src/checker /gopath/src/checker
+RUN go get checker
+RUN go get checker/check
+RUN go get checker/monitor
+RUN go get checker/listener
