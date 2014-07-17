@@ -80,7 +80,7 @@ func main() {
 	}
 	err := startMonitoring(cname, etcdHost)
 	if err != nil {
-		logger.Error("Monitoring stopped with error %s", err)
+		logger.Error("Monitoring stopped with error: %s", err)
 	} else {
 		logger.Info("Monitoring stopped.")
 	}
