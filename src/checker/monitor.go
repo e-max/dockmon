@@ -35,15 +35,30 @@ func GetMonitor(container *Container, etcdHost string) (*ContainerMonitor, error
 	return handler, nil
 }
 
+func (m *ContainerMonitor) checkAndRegister() error {
+	err := m.Check()
+	if err != nil {
+		logger.Info("Got error while check container %s: %s", m, err)
+		return err
+	}
+	err = m.Register()
+	if err != nil {
+		logger.Error("Cannot update info about container in etcd: %s", err)
+		return err
+	}
+	return nil
+}
+
 //StartMonitoring wrapped container
 func (m *ContainerMonitor) StartMonitoring() {
 	logger.Info("Start monitoring container %s", m)
+	m.checkAndRegister()
 	m.ticker = time.NewTicker(time.Duration(m.healthcheckPeriod) * time.Second)
 	m.stop = make(chan bool, 1)
 	for {
 		select {
 		case <-m.ticker.C:
-			err := m.Check()
+			err := m.checkAndRegister()
 			if err != nil {
 				switch err.(type) {
 				case *docker.NoSuchContainer:
@@ -52,14 +67,7 @@ func (m *ContainerMonitor) StartMonitoring() {
 				case *NotSupportCheckError:
 					logger.Warning("%s", err)
 					m.StopMonitoring()
-				default:
-					logger.Info("Got error while check container %s: %s", m, err)
-				}
 
-			} else {
-				err := m.Register()
-				if err != nil {
-					logger.Error("Cannot update info about container in etcd: %s", err)
 				}
 			}
 		case <-m.stop:
