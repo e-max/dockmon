@@ -44,10 +44,10 @@
 
 Формат ключа в etcd описывающий сервис предоставляемый контейнером выглядит следующим образом.
 
-/SERVICE/*IMAGENAME*/*CONTAINERID* 
+/SERVICE/**IMAGENAME**/**CONTAINERID**
 
-где %%IMAGENAME%% - последний сегмент имени образа. (Например для **tutum/rabbitmq** это будет **rabbitmq**, для **registry.at.netstream.ru/pusher/scheduler** это будет **scheduler** )
-%%CONTAINERID%% - идентификатор контейнера.
+где **IMAGENAME** - последний сегмент имени образа. (Например для **tutum/rabbitmq** это будет **rabbitmq**, для **registry.at.netstream.ru/pusher/scheduler** это будет **scheduler** )
+**CONTAINERID** - идентификатор контейнера.
 
 Формат значения по этому ключу выглядит следующим образом:
 
