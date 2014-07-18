@@ -83,6 +83,9 @@ func ContainerByName(name string) (*Container, error) {
 		return nil, err
 	}
 	for _, c := range containers {
+		if strings.HasPrefix(c.ID, name) {
+			return ContainerByID(c.ID)
+		}
 		for _, n := range c.Names {
 			logger.Debug("Test name %s", n)
 			if strings.TrimLeft(n, "/") == name {
