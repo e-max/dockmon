@@ -55,7 +55,7 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "Containers monitoring daemon.")
 		fmt.Fprintln(os.Stderr, "Started daemon which monitors container and updates status in etcd.")
-		fmt.Fprintf(os.Stderr, "Usage of check: monitor [options] container\n")
+		fmt.Fprintf(os.Stderr, "Usage of monitor: monitor [options] container\n")
 		fmt.Fprintf(os.Stderr, "Options:\n")
 		flag.PrintDefaults()
 	}
